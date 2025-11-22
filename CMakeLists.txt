@@ -97,6 +97,8 @@ include_directories(${STAN_MATH_INCLUDE_DIR})
 set(MODEL_SOURCES
     Models/HestonModel.cpp
     Models/CIRModel.cpp
+    Models/CIRPPModel.cpp
+    Models/JCIRPPModel.cpp
 )
 
 # Scenario generation source files
@@ -116,6 +118,8 @@ set(MODEL_HEADERS
     Models/HestonModel.h
     Models/CIRModel.h
     Models/GBMModel.h
+    Models/CIRPPModel.h
+    Models/JCIRPPModel.h
 )
 
 # Scenario generation header files
