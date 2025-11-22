@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <type_traits>
+#include <cmath>
 
 // Geometric Brownian Motion (GBM) model - templated on MarketObject type
 // MarketObject can be a scalar (double), vector, matrix, or custom class
@@ -30,7 +31,8 @@ struct GBMState {
 namespace GBM {
 
     // Generic update function for any MarketObject type
-    // Evolution: S_new = S_old * (1 + mu*dt + sigma*dW)
+    // Evolution: S_t = S_0 * exp((mu - sigma^2/2)*t + sigma*W_t)
+    // Discrete form: S_new = S_old * exp((mu - sigma^2/2)*dt + sigma*dW)
     template<typename MarketObject>
     inline void updateGBM(GBMState<MarketObject>& current,
                          const GBMState<MarketObject>& previous,
@@ -49,9 +51,12 @@ namespace GBM {
             return;
         }
 
-        // GBM evolution: S_new = S_old * (1 + mu*dt + sigma*dW)
+        // GBM exact solution between time steps:
+        // S_new = S_old * exp((mu - sigma^2/2)*dt + sigma*dW)
         // All elements use the SAME Brownian motion dW[0]
-        double factor = 1.0 + params.drift * dt + params.volatility * dW[0];
+        double drift_correction = (params.drift - 0.5 * params.volatility * params.volatility) * dt;
+        double diffusion = params.volatility * dW[0];
+        double factor = std::exp(drift_correction + diffusion);
         current.value = previous.value * factor;
     }
 
