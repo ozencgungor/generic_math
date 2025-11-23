@@ -4,7 +4,7 @@
 #include <vector>
 #include <map>
 
-// JCIR++ (Jump CIR Plus Plus) model parameters
+// JCIR++ (Jump CIR Plus Plus) model parameters (pure data)
 // Models intensity: λ(t) = x(t) + φ(t)
 // where x(t) follows: dx = κ[θ - x]dt + σ√x dW + J·dN
 // - CIR diffusion component
@@ -33,17 +33,30 @@ struct JCIRPPState {
     JCIRPPState(double intensity = 0.0, double cumulativeIntensity = 0.0, int totalJumps = 0);
 };
 
-// Namespace for JCIR++ model functions
-namespace JCIRPP {
+// JCIR++ model class
+class JCIRPPModel {
+public:
+    // Constructor takes params struct
+    explicit JCIRPPModel(const JCIRPPParams& params);
+
     // Update function for JCIR++ model
     // Note: Requires a seed for Poisson/exponential random generation
-    void updateJCIRPP(JCIRPPState& current,
-                      const JCIRPPState& previous,
-                      size_t stepIndex,
-                      double dt,
-                      const std::vector<double>& dW,
-                      const JCIRPPParams& params,
-                      unsigned int seed);
+    void update(JCIRPPState& current,
+               const JCIRPPState& previous,
+               size_t stepIndex,
+               double dt,
+               const std::vector<double>& dW,
+               unsigned int seed) const;
+
+    // Access to parameters
+    const JCIRPPParams& getParams() const { return m_params; }
+
+private:
+    JCIRPPParams m_params;
+};
+
+// Namespace for JCIR++ helper functions
+namespace JCIRPP {
 
     // ========================================================================
     // Credit Risk Helper Functions

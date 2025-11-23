@@ -29,7 +29,7 @@ public:
     bool isSimulated(const std::string& name) const;
 
 private:
-    std::map<std::string, HestonParams> m_equityParams;
+    std::map<std::string, HestonModel> m_equityModels;
     std::map<std::string, std::map<int, HestonState>> m_equityPaths;
     std::set<std::string> m_simulatedEquities;
 };

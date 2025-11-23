@@ -4,7 +4,7 @@
 #include <vector>
 #include <map>
 
-// CIR++ (Cox-Ingersoll-Ross Plus Plus) model parameters
+// CIR++ (Cox-Ingersoll-Ross Plus Plus) model parameters (pure data)
 // Models intensity: λ(t) = x(t) + φ(t)
 // where x(t) follows CIR: dx = κ[θ - x]dt + σ√x dW
 // and φ(t) is a deterministic shift function for calibration
@@ -28,15 +28,28 @@ struct CIRPPState {
     CIRPPState(double intensity = 0.0, double cumulativeIntensity = 0.0);
 };
 
-// Namespace for CIR++ model functions
-namespace CIRPP {
+// CIR++ model class
+class CIRPPModel {
+public:
+    // Constructor takes params struct
+    explicit CIRPPModel(const CIRPPParams& params);
+
     // Update function for CIR++ model
-    void updateCIRPP(CIRPPState& current,
-                     const CIRPPState& previous,
-                     size_t stepIndex,
-                     double dt,
-                     const std::vector<double>& dW,
-                     const CIRPPParams& params);
+    void update(CIRPPState& current,
+               const CIRPPState& previous,
+               size_t stepIndex,
+               double dt,
+               const std::vector<double>& dW) const;
+
+    // Access to parameters
+    const CIRPPParams& getParams() const { return m_params; }
+
+private:
+    CIRPPParams m_params;
+};
+
+// Namespace for CIR++ helper functions
+namespace CIRPP {
 
     // ========================================================================
     // Credit Risk Helper Functions

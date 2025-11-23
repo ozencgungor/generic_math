@@ -30,18 +30,18 @@ JCIRPPState::JCIRPPState(double intensity, double cumulativeIntensity, int total
     : intensity(intensity), cumulativeIntensity(cumulativeIntensity), totalJumps(totalJumps) {}
 
 // ============================================================================
-// JCIR++ Update Function
+// JCIRPPModel Implementation
 // ============================================================================
 
-namespace JCIRPP {
+JCIRPPModel::JCIRPPModel(const JCIRPPParams& params)
+    : m_params(params) {}
 
-void updateJCIRPP(JCIRPPState& current,
-                  const JCIRPPState& previous,
-                  size_t stepIndex,
-                  double dt,
-                  const std::vector<double>& dW,
-                  const JCIRPPParams& params,
-                  unsigned int seed) {
+void JCIRPPModel::update(JCIRPPState& current,
+                        const JCIRPPState& previous,
+                        size_t stepIndex,
+                        double dt,
+                        const std::vector<double>& dW,
+                        unsigned int seed) const {
 
     if (dW.empty()) {
         throw std::invalid_argument("JCIR++ model requires at least 1 Brownian motion");
@@ -50,16 +50,16 @@ void updateJCIRPP(JCIRPPState& current,
     // Initial state
     if (stepIndex == 0) {
         // Get shift at time 0
-        double shift = params.shifts.empty() ? 0.0 : params.shifts[0];
-        current.intensity = params.x0 + shift;
+        double shift = m_params.shifts.empty() ? 0.0 : m_params.shifts[0];
+        current.intensity = m_params.x0 + shift;
         current.cumulativeIntensity = 0.0;
         current.totalJumps = 0;
         return;
     }
 
     // Get previous and current shift values (piecewise constant)
-    double prevShift = (stepIndex - 1 < params.shifts.size()) ? params.shifts[stepIndex - 1] : 0.0;
-    double currShift = (stepIndex < params.shifts.size()) ? params.shifts[stepIndex] : 0.0;
+    double prevShift = (stepIndex - 1 < m_params.shifts.size()) ? m_params.shifts[stepIndex - 1] : 0.0;
+    double currShift = (stepIndex < m_params.shifts.size()) ? m_params.shifts[stepIndex] : 0.0;
 
     // Extract x(t) from previous intensity: x = λ - φ
     double x_prev = previous.intensity - prevShift;
@@ -68,8 +68,8 @@ void updateJCIRPP(JCIRPPState& current,
     // CIR diffusion component: dx = κ[θ - x]dt + σ√x dW
     // ========================================================================
     double x = std::max(x_prev, 0.0);
-    double dx_diffusion = params.kappa * (params.theta - x) * dt
-                          + params.sigma * std::sqrt(x) * dW[0];
+    double dx_diffusion = m_params.kappa * (m_params.theta - x) * dt
+                          + m_params.sigma * std::sqrt(x) * dW[0];
 
     // ========================================================================
     // Jump component: J·dN
@@ -78,11 +78,11 @@ void updateJCIRPP(JCIRPPState& current,
     std::mt19937 gen(seed + stepIndex * 1000);  // Seed based on step for reproducibility
 
     // Number of jumps in time interval dt follows Poisson(ν * dt)
-    std::poisson_distribution<int> poissonDist(params.jumpIntensity * dt);
+    std::poisson_distribution<int> poissonDist(m_params.jumpIntensity * dt);
     int numJumps = poissonDist(gen);
 
     // Generate jump sizes (exponential distribution with mean jumpMean)
-    std::exponential_distribution<double> expDist(1.0 / params.jumpMean);
+    std::exponential_distribution<double> expDist(1.0 / m_params.jumpMean);
     double totalJumpSize = 0.0;
     for (int i = 0; i < numJumps; ++i) {
         totalJumpSize += expDist(gen);
@@ -105,6 +105,12 @@ void updateJCIRPP(JCIRPPState& current,
     // Update jump counter
     current.totalJumps = previous.totalJumps + numJumps;
 }
+
+// ============================================================================
+// Credit Risk Helper Functions
+// ============================================================================
+
+namespace JCIRPP {
 
 // ============================================================================
 // Credit Risk Helper Functions

@@ -9,10 +9,10 @@ EquitySimulator::EquitySimulator(const std::vector<int>& scheduleDays)
     : ModelSimulator(scheduleDays, 0, false) {}
 
 void EquitySimulator::addEquity(const std::string& name, const HestonParams& params) {
-    if (m_equityParams.find(name) != m_equityParams.end()) {
+    if (m_equityModels.find(name) != m_equityModels.end()) {
         throw std::invalid_argument("Equity '" + name + "' already exists");
     }
-    m_equityParams.insert({name, params});
+    m_equityModels.insert({name, HestonModel(params)});
 }
 
 void EquitySimulator::simulateEquity(const std::string& name) {
@@ -22,18 +22,18 @@ void EquitySimulator::simulateEquity(const std::string& name) {
     }
 
     // Check if equity exists
-    auto it = m_equityParams.find(name);
-    if (it == m_equityParams.end()) {
+    auto it = m_equityModels.find(name);
+    if (it == m_equityModels.end()) {
         throw std::invalid_argument("Equity '" + name + "' not found");
     }
 
-    const HestonParams& params = it->second;
-    size_t equityIndex = std::distance(m_equityParams.begin(), it);
+    const HestonModel& model = it->second;
+    size_t equityIndex = std::distance(m_equityModels.begin(), it);
 
     // Create correlation matrix for Heston (spot and variance)
     std::vector<std::vector<double>> corrMatrix = {
-        {1.0, params.rho},
-        {params.rho, 1.0}
+        {1.0, model.getParams().rho},
+        {model.getParams().rho, 1.0}
     };
 
     // Generate correlated Brownian motions for this equity
@@ -51,7 +51,7 @@ void EquitySimulator::simulateEquity(const std::string& name) {
     // Define update callback
     auto updateStep = [&](size_t i, double dt, const std::vector<double>& dW) {
         HestonState previous = (i == 0) ? HestonState() : states[i-1];
-        Heston::updateHeston(states[i], previous, i, dt, dW, params);
+        model.update(states[i], previous, i, dt, dW);
         path[m_scheduleDays[i]] = states[i];
     };
 
@@ -69,7 +69,7 @@ void EquitySimulator::generateBrownianMotions() {
 
 void EquitySimulator::simulate() {
     // Simulate all equities
-    for (const auto& entry : m_equityParams) {
+    for (const auto& entry : m_equityModels) {
         simulateEquity(entry.first);
     }
 }
@@ -91,7 +91,7 @@ const std::map<int, HestonState>& EquitySimulator::getEquityPath(const std::stri
 
 std::vector<std::string> EquitySimulator::getEquityNames() const {
     std::vector<std::string> names;
-    for (const auto& entry : m_equityParams) {
+    for (const auto& entry : m_equityModels) {
         names.push_back(entry.first);
     }
     return names;

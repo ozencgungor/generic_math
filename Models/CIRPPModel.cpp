@@ -25,17 +25,17 @@ CIRPPState::CIRPPState(double intensity, double cumulativeIntensity)
     : intensity(intensity), cumulativeIntensity(cumulativeIntensity) {}
 
 // ============================================================================
-// CIR++ Update Function
+// CIRPPModel Implementation
 // ============================================================================
 
-namespace CIRPP {
+CIRPPModel::CIRPPModel(const CIRPPParams& params)
+    : m_params(params) {}
 
-void updateCIRPP(CIRPPState& current,
-                 const CIRPPState& previous,
-                 size_t stepIndex,
-                 double dt,
-                 const std::vector<double>& dW,
-                 const CIRPPParams& params) {
+void CIRPPModel::update(CIRPPState& current,
+                       const CIRPPState& previous,
+                       size_t stepIndex,
+                       double dt,
+                       const std::vector<double>& dW) const {
 
     if (dW.empty()) {
         throw std::invalid_argument("CIR++ model requires at least 1 Brownian motion");
@@ -44,15 +44,15 @@ void updateCIRPP(CIRPPState& current,
     // Initial state
     if (stepIndex == 0) {
         // Get shift at time 0
-        double shift = params.shifts.empty() ? 0.0 : params.shifts[0];
-        current.intensity = params.x0 + shift;
+        double shift = m_params.shifts.empty() ? 0.0 : m_params.shifts[0];
+        current.intensity = m_params.x0 + shift;
         current.cumulativeIntensity = 0.0;
         return;
     }
 
     // Get previous and current shift values (piecewise constant)
-    double prevShift = (stepIndex - 1 < params.shifts.size()) ? params.shifts[stepIndex - 1] : 0.0;
-    double currShift = (stepIndex < params.shifts.size()) ? params.shifts[stepIndex] : 0.0;
+    double prevShift = (stepIndex - 1 < m_params.shifts.size()) ? m_params.shifts[stepIndex - 1] : 0.0;
+    double currShift = (stepIndex < m_params.shifts.size()) ? m_params.shifts[stepIndex] : 0.0;
 
     // Extract x(t) from previous intensity: x = λ - φ
     double x_prev = previous.intensity - prevShift;
@@ -60,8 +60,8 @@ void updateCIRPP(CIRPPState& current,
     // CIR dynamics for x(t): dx = κ[θ - x]dt + σ√x dW
     // Truncate to ensure non-negativity
     double x = std::max(x_prev, 0.0);
-    double dx = params.kappa * (params.theta - x) * dt
-                + params.sigma * std::sqrt(x) * dW[0];
+    double dx = m_params.kappa * (m_params.theta - x) * dt
+                + m_params.sigma * std::sqrt(x) * dW[0];
     double x_curr = std::max(x + dx, 0.0);
 
     // Add current shift to get intensity: λ(t) = x(t) + φ(t)
@@ -72,6 +72,12 @@ void updateCIRPP(CIRPPState& current,
     double intensityIncrement = 0.5 * (previous.intensity + current.intensity) * dt;
     current.cumulativeIntensity = previous.cumulativeIntensity + intensityIncrement;
 }
+
+// ============================================================================
+// Credit Risk Helper Functions
+// ============================================================================
+
+namespace CIRPP {
 
 // ============================================================================
 // Credit Risk Helper Functions

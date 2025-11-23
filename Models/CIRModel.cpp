@@ -23,17 +23,17 @@ CIRParams::CIRParams(double r0, double kappa, double theta, double sigma)
 CIRState::CIRState(double value) : value(value) {}
 
 // ============================================================================
-// CIR Update Function
+// CIRModel Implementation
 // ============================================================================
 
-namespace CIR {
+CIRModel::CIRModel(const CIRParams& params)
+    : m_params(params) {}
 
-void updateCIR(CIRState& current,
-              const CIRState& previous,
-              size_t stepIndex,
-              double dt,
-              const std::vector<double>& dW,
-              const CIRParams& params) {
+void CIRModel::update(CIRState& current,
+                     const CIRState& previous,
+                     size_t stepIndex,
+                     double dt,
+                     const std::vector<double>& dW) const {
 
     if (dW.empty()) {
         throw std::invalid_argument("CIR model requires at least 1 Brownian motion");
@@ -41,16 +41,14 @@ void updateCIR(CIRState& current,
 
     // Initial state
     if (stepIndex == 0) {
-        current.value = params.r0;
+        current.value = m_params.r0;
         return;
     }
 
     // CIR dynamics: dr = kappa*(theta - r)*dt + sigma*sqrt(r)*dW
     // Truncate to ensure non-negativity
     double r = std::max(previous.value, 0.0);
-    double dr = params.kappa * (params.theta - r) * dt
-                + params.sigma * std::sqrt(r) * dW[0];
+    double dr = m_params.kappa * (m_params.theta - r) * dt
+                + m_params.sigma * std::sqrt(r) * dW[0];
     current.value = std::max(r + dr, 0.0);
 }
-
-} // namespace CIR

@@ -29,7 +29,7 @@ public:
     bool isSimulated(const std::string& name) const;
 
 private:
-    std::map<std::string, CIRParams> m_creditParams;
+    std::map<std::string, CIRModel> m_creditModels;
     std::map<std::string, std::map<int, CIRState>> m_creditPaths;
     std::set<std::string> m_simulatedCredits;
 };

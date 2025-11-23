@@ -3,7 +3,7 @@
 
 #include <vector>
 
-// CIR (Cox-Ingersoll-Ross) model parameters
+// CIR (Cox-Ingersoll-Ross) model parameters (pure data)
 struct CIRParams {
     double r0;       // Initial value
     double kappa;    // Mean reversion speed
@@ -20,15 +20,24 @@ struct CIRState {
     CIRState(double value = 0.0);
 };
 
-// Namespace for CIR model functions
-namespace CIR {
+// CIR model class
+class CIRModel {
+public:
+    // Constructor takes params struct
+    explicit CIRModel(const CIRParams& params);
+
     // Update function for CIR model
-    void updateCIR(CIRState& current,
-                  const CIRState& previous,
-                  size_t stepIndex,
-                  double dt,
-                  const std::vector<double>& dW,
-                  const CIRParams& params);
-}
+    void update(CIRState& current,
+               const CIRState& previous,
+               size_t stepIndex,
+               double dt,
+               const std::vector<double>& dW) const;
+
+    // Access to parameters
+    const CIRParams& getParams() const { return m_params; }
+
+private:
+    CIRParams m_params;
+};
 
 #endif // CIR_MODEL_H

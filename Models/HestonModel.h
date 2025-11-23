@@ -3,7 +3,7 @@
 
 #include <vector>
 
-// Heston model parameters
+// Heston model parameters (pure data)
 struct HestonParams {
     double s0;       // Initial spot price
     double v0;       // Initial variance
@@ -25,15 +25,24 @@ struct HestonState {
     HestonState(double spot = 0.0, double variance = 0.0);
 };
 
-// Namespace for Heston model functions
-namespace Heston {
+// Heston model class
+class HestonModel {
+public:
+    // Constructor takes params struct
+    explicit HestonModel(const HestonParams& params);
+
     // Update function for Heston model
-    void updateHeston(HestonState& current,
-                     const HestonState& previous,
-                     size_t stepIndex,
-                     double dt,
-                     const std::vector<double>& dW,
-                     const HestonParams& params);
-}
+    void update(HestonState& current,
+               const HestonState& previous,
+               size_t stepIndex,
+               double dt,
+               const std::vector<double>& dW) const;
+
+    // Access to parameters
+    const HestonParams& getParams() const { return m_params; }
+
+private:
+    HestonParams m_params;
+};
 
 #endif // HESTON_MODEL_H

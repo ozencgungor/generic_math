@@ -27,17 +27,17 @@ HestonState::HestonState(double spot, double variance)
     : spot(spot), variance(variance) {}
 
 // ============================================================================
-// Heston Update Function
+// HestonModel Implementation
 // ============================================================================
 
-namespace Heston {
+HestonModel::HestonModel(const HestonParams& params)
+    : m_params(params) {}
 
-void updateHeston(HestonState& current,
-                 const HestonState& previous,
-                 size_t stepIndex,
-                 double dt,
-                 const std::vector<double>& dW,
-                 const HestonParams& params) {
+void HestonModel::update(HestonState& current,
+                        const HestonState& previous,
+                        size_t stepIndex,
+                        double dt,
+                        const std::vector<double>& dW) const {
 
     if (dW.size() < 2) {
         throw std::invalid_argument("Heston model requires 2 Brownian motions");
@@ -45,21 +45,19 @@ void updateHeston(HestonState& current,
 
     // Initial state
     if (stepIndex == 0) {
-        current.spot = params.s0;
-        current.variance = params.v0;
+        current.spot = m_params.s0;
+        current.variance = m_params.v0;
         return;
     }
 
     // Update variance (CIR process with truncation to ensure non-negativity)
     double v = std::max(previous.variance, 0.0);
-    double dV = params.kappa * (params.theta - v) * dt
-                + params.sigma * std::sqrt(v) * dW[1];
+    double dV = m_params.kappa * (m_params.theta - v) * dt
+                + m_params.sigma * std::sqrt(v) * dW[1];
     current.variance = std::max(v + dV, 0.0);
 
     // Update spot
-    double dS = params.mu * previous.spot * dt
+    double dS = m_params.mu * previous.spot * dt
                 + previous.spot * std::sqrt(v) * dW[0];
     current.spot = previous.spot + dS;
 }
-
-} // namespace Heston

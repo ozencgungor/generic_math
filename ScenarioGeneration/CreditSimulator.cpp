@@ -9,10 +9,10 @@ CreditSimulator::CreditSimulator(const std::vector<int>& scheduleDays)
     : ModelSimulator(scheduleDays, 0, false) {}
 
 void CreditSimulator::addCredit(const std::string& name, const CIRParams& params) {
-    if (m_creditParams.find(name) != m_creditParams.end()) {
+    if (m_creditModels.find(name) != m_creditModels.end()) {
         throw std::invalid_argument("Credit '" + name + "' already exists");
     }
-    m_creditParams.insert({name, params});
+    m_creditModels.insert({name, CIRModel(params)});
 }
 
 void CreditSimulator::simulateCredit(const std::string& name) {
@@ -22,13 +22,13 @@ void CreditSimulator::simulateCredit(const std::string& name) {
     }
 
     // Check if credit exists
-    auto it = m_creditParams.find(name);
-    if (it == m_creditParams.end()) {
+    auto it = m_creditModels.find(name);
+    if (it == m_creditModels.end()) {
         throw std::invalid_argument("Credit '" + name + "' not found");
     }
 
-    const CIRParams& params = it->second;
-    size_t creditIndex = std::distance(m_creditParams.begin(), it);
+    const CIRModel& model = it->second;
+    size_t creditIndex = std::distance(m_creditModels.begin(), it);
 
     // Generate single independent Brownian motion for this credit (CIR is 1-factor)
     unsigned int seed = m_useSeed ? m_seed + creditIndex * 1000 : std::random_device{}();
@@ -45,7 +45,7 @@ void CreditSimulator::simulateCredit(const std::string& name) {
     // Define update callback
     auto updateStep = [&](size_t i, double dt, const std::vector<double>& dW) {
         CIRState previous = (i == 0) ? CIRState() : states[i-1];
-        CIR::updateCIR(states[i], previous, i, dt, dW, params);
+        model.update(states[i], previous, i, dt, dW);
         path[m_scheduleDays[i]] = states[i];
     };
 
@@ -63,7 +63,7 @@ void CreditSimulator::generateBrownianMotions() {
 
 void CreditSimulator::simulate() {
     // Simulate all credits
-    for (const auto& entry : m_creditParams) {
+    for (const auto& entry : m_creditModels) {
         simulateCredit(entry.first);
     }
 }
@@ -85,7 +85,7 @@ const std::map<int, CIRState>& CreditSimulator::getCreditPath(const std::string&
 
 std::vector<std::string> CreditSimulator::getCreditNames() const {
     std::vector<std::string> names;
-    for (const auto& entry : m_creditParams) {
+    for (const auto& entry : m_creditModels) {
         names.push_back(entry.first);
     }
     return names;
